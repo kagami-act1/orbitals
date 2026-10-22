@@ -1,0 +1,9 @@
+settings.json*
+*.draft.json
+*.bak
+*.tmp
+*.zip
+*.exe
+update-channel.json
+source/
+archive/
