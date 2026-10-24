@@ -1,0 +1,10 @@
+{
+  "SchemaVersion": 1,
+  "Id": "notepad-shortcuts",
+  "Name": "メモ帳の操作",
+  "Application": "notepad.exe",
+  "Actions": [
+    { "Id": "save", "Label": "保存", "Icon": "ms:save", "Kind": "shortcut", "Value": "Ctrl+S" },
+    { "Id": "select-copy", "Label": "すべてコピー", "Icon": "ms:content_copy", "Kind": "macro", "Value": "Ctrl+A\nCtrl+C" }
+  ]
+}

@@ -1,0 +1,52 @@
+Material Symbols Rounded
+Copyright 2026 Google LLC. All Rights Reserved.
+
+Source: https://fonts.google.com/icons
+Repository: https://github.com/google/material-design-icons
+Upstream commit: 49d4db35df873165d6bd6ba09b063c7dafbac2f4
+License: Apache License, Version 2.0
+Full license: LICENSE-Material-Symbols.txt
+
+OrbitRing derives bundled vector geometry from the official variable font.
+The fixed instance uses FILL=0, GRAD=0, opsz=24, wght=400.
+Coordinates are scaled and Y-flipped into a 24 by 24 viewport.
+Alias names sharing a codepoint are consolidated into a single entry.
+Japanese labels, search vocabulary, and primary categories were added by OrbitRing.
+The assets are embedded locally; the application does not fetch icons at runtime.
+
+fontTools 4.67.0 was used only during asset preparation and is not required or
+distributed as an OrbitRing runtime dependency.
+
+PDFsharp-WPF 6.2.4 (MIT)
+Source: https://github.com/empira/PDFsharp/tree/v6.2.4
+License: conversion/licenses/PDFsharp-LICENSE.txt
+
+Google libwebp 1.6.0: cwebp.exe and dwebp.exe (BSD-3-Clause)
+Source: https://developers.google.com/speed/webp/docs/precompiled
+License and patent grant: conversion/licenses/libwebp-COPYING.txt,
+conversion/licenses/libwebp-PATENTS.txt
+This software is based in part on the work of the Independent JPEG Group.
+
+Microsoft .NET libraries (MIT):
+Microsoft.Extensions.Logging.Abstractions 8.0.3
+Microsoft.Extensions.DependencyInjection.Abstractions 8.0.2
+Microsoft.Bcl.AsyncInterfaces 8.0.0
+System.Buffers 4.5.1; System.Memory 4.5.5; System.Numerics.Vectors 4.5.0
+System.Runtime.CompilerServices.Unsafe 6.0.0
+System.Security.Cryptography.Pkcs 8.0.1; System.Threading.Tasks.Extensions 4.5.4
+Source: https://www.nuget.org/
+Full license texts: conversion/licenses/*-LICENSE.txt
+
+Windows PDF rendering uses the Windows 11 PDF API. These optional conversion
+components are used by a separate, on-demand worker process.
+
+SVG rasterization: resvg 0.47.0, MIT license.
+Source: https://github.com/linebender/resvg/tree/v0.47.0
+Official Windows archive SHA-256: 5684e59ceaa53ce720b49efb441b0918ae99d04e8ce3f6f753664524592d67f1
+License: conversion/licenses/resvg-LICENSE.txt
+OCR uses Windows.Media.Ocr with the installed user-profile language; images and
+PDF pages are processed locally and are not uploaded.
+
+The Windows installer is built with NSIS 3.12.
+Source: https://nsis.sourceforge.io/ (official unmodified NSIS 3.12 distribution)
+License and compression-module terms: LICENSE-NSIS.txt

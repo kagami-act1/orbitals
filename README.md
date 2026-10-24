@@ -1,28 +1,42 @@
-# orbitals
+# Orbitals
 
-Windows 11向けのリングランチャーとマウスジェスチャーです。
+Windows 11向けのリングランチャー・マウスジェスチャー。現行版は **1.0.0** です。
 
-- **planet**：カーソル位置からアクションを呼び出すリング。
-- **orbit**：自分で描いた形や、ボタンとホイールの組み合わせで実行するジェスチャー。
-- アプリ別の割り当て、スタック、キー保持、マクロ、多段階トグルに対応しています。
+[最新版のダウンロード](https://github.com/kagami-act1/orbitals/releases/latest)
 
-このリポジトリは配布用です。ソースコードや個人の設定は含みません。
+- planet：リングにアクションを配置。スタック、キー保持、状態ごとのアイコンに対応。
+- orbit：自作ジェスチャー、プリセット、アプリ別の割り当てに対応。
+- ファイル変換：画像・PDFをドラッグしたまま形式を選んで変換。
 
-## ダウンロード
+## フォルダー
 
-[Releases](https://github.com/kagami-act1/orbitals/releases/latest)から `orbitals-Windows11.zip` をダウンロードし、展開して `orbitals.exe` を実行してください。Windows 11標準の.NET Framework 4.8を使用します。
+| 場所 | 内容 |
+| --- | --- |
+| `work/current/source` | 現行ソース、テスト、ビルド・パッケージ作成スクリプト |
+| `work/current/conversion` | ファイル変換に必要な実行ファイル・DLL・ライセンス |
+| `work/current/plugin-examples` | 自作プラグインのサンプル |
+| `work/current` の各文書 | 使い方、アイコン分類、プラグイン作成方法、ライセンス |
+| `work/build-tools/nsis-3.12` | インストーラーのコンパイラー |
+| `work/dependencies` | 変換ライブラリの再生成に使うパッケージと検証用ハッシュ |
+| `outputs` | 最新のインストーラー、ZIP版、SHA-256チェックサム |
 
-設定の歯車からWindowsログイン時の自動起動を有効にできます。設定はアプリと同じフォルダーの `settings.json` に保存されます。
+通常の利用では、スタートメニューの **Orbitals** を起動します。インストール済みアプリの設定はこの作業フォルダー外の `%LOCALAPPDATA%\Orbitals` に保存します。
 
-## 更新
+## 開発
 
-アプリの歯車 → 更新から確認できます。自動確認を有効にすると、起動後と1日ごとに正式版を確認し、新版があれば通知します。
+Windows 11・64bitの.NET Framework 4.8でビルドします。変換用のDLL・実行ファイルと各ライセンスはソースと一緒に管理しています。
 
-更新前に設定をJSONへバックアップし、orbitalsを終了してから配布ファイルを差し替えてください。既存の `settings.json` は保持してください。配布ZIPには設定ファイルを含みません。
+Gitから取得した場合、インストーラーの作成時は[NSIS](https://nsis.sourceforge.io/Download) 3.12を `work/build-tools/nsis-3.12` に展開してください。依存パッケージの再展開用キャッシュはローカル専用です。
 
-## 配布ファイル
+このフォルダーをカレントディレクトリとして実行します。
 
-- `orbitals-Windows11.zip`：ポータブル版。
-- `SHA256SUMS.txt`：配布ZIPのSHA-256。
+```powershell
+.\work\current\source\build.ps1
+.\work\current\orbitals.exe --self-test "$env:TEMP\orbitals-self-test.txt"
+.\work\current\source\package.ps1 -Repository kagami-act1/orbitals -OutputDirectory .\work\current\distribution
+.\work\current\source\installer\build-installer.ps1 -Package .\work\current\distribution\orbitals-Windows11.zip -Compiler .\work\build-tools\nsis-3.12\makensis.exe -Output .\work\current\distribution\orbitals-Setup.exe
+```
 
-アプリ内の設定・マクロ・ファイルパス・下書き・バックアップはGitHubへ送信しません。更新確認ではGitHubの公開リリース情報だけを取得します。
+`work/prepare-conversion.ps1` は、保存済みパッケージのハッシュを確認して変換ライブラリを再展開します。
+
+インストーラーはWindowsの通常のデスクトップ起動経路から実行し、設定が別アプリの仮想保存先へ振り分けられていないことを確認します。GitHubへの公開・更新は、明示的な依頼があった場合だけ行います。

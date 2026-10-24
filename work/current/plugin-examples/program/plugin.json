@@ -1,0 +1,8 @@
+{
+  "SchemaVersion": 1,
+  "Id": "code-example",
+  "Name": "コード連携のサンプル",
+  "Actions": [
+    { "Id": "example", "Label": "連携のサンプル", "Icon": "ms:extension", "Kind": "program", "Executable": "OrbitalsExample.exe", "Arguments": [] }
+  ]
+}
