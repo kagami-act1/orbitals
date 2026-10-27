@@ -19,3 +19,4 @@ self-test*.txt
 .vs/
 bin/
 obj/
+node_modules/

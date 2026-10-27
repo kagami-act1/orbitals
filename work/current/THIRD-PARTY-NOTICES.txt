@@ -50,3 +50,19 @@ PDF pages are processed locally and are not uploaded.
 The Windows installer is built with NSIS 3.12.
 Source: https://nsis.sourceforge.io/ (official unmodified NSIS 3.12 distribution)
 License and compression-module terms: LICENSE-NSIS.txt
+
+Magick.NET 15.0.0 (Apache-2.0) and ImageMagick 7.1.2-33 native image libraries.
+Source: https://github.com/dlemstra/Magick.NET/tree/15.0.0
+Upstream commit: 79bb8700d7fe3a564f62926ab299fc2520cb2269
+Native dependencies and corresponding upstream sources:
+https://github.com/dlemstra/Magick.Native
+Full license: conversion/licenses/Magick.NET-LICENSE.txt
+Bundled dependency notices, licenses and source references (including libheif,
+libde265, AV1 decoders and their LGPL/BSD/MIT terms):
+conversion/licenses/magick.net-q8-x64-Notice.txt
+HEIC/AVIF/WebP decoding first uses the Windows image API. The image-codec process
+uses these libraries to decode local HEIC/AVIF files when Windows cannot decode them.
+The resident Orbitals process does not load the image codec assemblies.
+
+Office document conversion uses the user's separately installed Microsoft Office
+or LibreOffice. Neither office suite is redistributed with Orbitals.

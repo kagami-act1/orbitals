@@ -25,18 +25,22 @@ foreach($orbitDirectory in (Get-ChildItem -LiteralPath $orbitPayload -Recurse -D
 [IO.File]::WriteAllLines($orbitUninstall,$orbitLines,[Text.UTF8Encoding]::new($true))
 Add-Type -AssemblyName System.Drawing
 $orbitSidebar=Join-Path $orbitStage 'sidebar.bmp'
-$orbitBitmap=[Drawing.Bitmap]::new(164,314)
+$orbitBitmap=[Drawing.Bitmap]::new(328,628)
 $orbitGraphics=[Drawing.Graphics]::FromImage($orbitBitmap)
-$orbitImage=[Drawing.Image]::FromFile((Join-Path $PSScriptRoot '../assets/OrbitRing.png'))
-$orbitFont=[Drawing.Font]::new('Segoe UI',13,[Drawing.FontStyle]::Regular)
+$orbitBrand=[Drawing.Icon]::new((Join-Path $PSScriptRoot '../assets/app/running.ico'),256,256)
+$orbitImage=$orbitBrand.ToBitmap()
+$orbitFont=[Drawing.Font]::new('Segoe UI',22,[Drawing.FontStyle]::Regular)
 $orbitBrush=[Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(147,233,193))
 try {
     $orbitGraphics.Clear([Drawing.Color]::FromArgb(15,20,27))
-    $orbitGraphics.DrawImage($orbitImage,31,67,102,102)
-    $orbitGraphics.DrawString('ORBITALS',$orbitFont,$orbitBrush,28,193)
+    $orbitGraphics.InterpolationMode=[Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+    $orbitGraphics.SmoothingMode=[Drawing.Drawing2D.SmoothingMode]::AntiAlias
+    $orbitGraphics.TextRenderingHint=[Drawing.Text.TextRenderingHint]::AntiAliasGridFit
+    $orbitGraphics.DrawImage($orbitImage,72,160,184,184)
+    $orbitGraphics.DrawString('ORBITALS',$orbitFont,$orbitBrush,90,380)
     $orbitBitmap.Save($orbitSidebar,[Drawing.Imaging.ImageFormat]::Bmp)
-} finally { $orbitGraphics.Dispose(); $orbitBitmap.Dispose(); $orbitImage.Dispose(); $orbitFont.Dispose(); $orbitBrush.Dispose() }
-$orbitIcon=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../assets/OrbitRing.ico')).Path
+} finally { $orbitGraphics.Dispose(); $orbitBitmap.Dispose(); $orbitImage.Dispose(); $orbitBrand.Dispose(); $orbitFont.Dispose(); $orbitBrush.Dispose() }
+$orbitIcon=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../assets/app/running.ico')).Path
 $orbitSize=[Math]::Ceiling(((Get-ChildItem -LiteralPath $orbitPayload -Recurse -File | Measure-Object Length -Sum).Sum)/1024)
 $orbitArguments=@('/V2','/INPUTCHARSET','UTF8',('/DPAYLOAD='+$orbitPayload),('/DAPP_VERSION='+$orbitVersion),('/DAPP_ICON='+$orbitIcon),('/DAPP_SIZE='+$orbitSize),('/DSIDEBAR='+$orbitSidebar),('/DUNINSTALL_FILES='+$orbitUninstall),('/DSETUP_OUTPUT='+$orbitOutput))
 if($TestBuild) { $orbitArguments+='/DINSTALL_TEST=1' }

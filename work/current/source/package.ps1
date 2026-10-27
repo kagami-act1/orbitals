@@ -8,13 +8,13 @@ $orbitApp=Split-Path -Parent $PSScriptRoot
 if(-not $OutputDirectory) { $OutputDirectory=Join-Path $orbitApp 'distribution' }
 $orbitOutput=[IO.Path]::GetFullPath($OutputDirectory)
 [IO.Directory]::CreateDirectory($orbitOutput) | Out-Null
-$orbitPackage=Join-Path $orbitOutput 'orbitals-Windows11.zip'
+$orbitPackage=Join-Path $orbitOutput 'orbitals-Portable-Windows11.zip'
 if(Test-Path -LiteralPath $orbitPackage) { throw 'Package already exists; choose an empty output directory.' }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $orbitFiles=@('orbitals.exe','orbitals.exe.config','使い方.md','アイコン分類.md','プラグインの作り方.md','THIRD-PARTY-NOTICES.txt','LICENSE-Material-Symbols.txt','LICENSE-NSIS.txt')
 foreach($orbitName in $orbitFiles) { if(-not (Test-Path -LiteralPath (Join-Path $orbitApp $orbitName) -PathType Leaf)) { throw "Missing distribution file: $orbitName" } }
 $orbitConversion=Join-Path $orbitApp 'conversion'
-foreach($orbitName in @('PdfSharp-wpf.dll','cwebp.exe','dwebp.exe','resvg.exe','licenses\PDFsharp-LICENSE.txt','licenses\libwebp-COPYING.txt','licenses\resvg-LICENSE.txt')) { if(-not (Test-Path -LiteralPath (Join-Path $orbitConversion $orbitName) -PathType Leaf)) { throw "Missing conversion component: $orbitName" } }
+foreach($orbitName in @('PdfSharp-wpf.dll','cwebp.exe','dwebp.exe','resvg.exe','image-codec.exe','Magick.NET.Core.dll','Magick.NET-Q8-x64.dll','Magick.Native-Q8-x64.dll','policy.xml','licenses\PDFsharp-LICENSE.txt','licenses\libwebp-COPYING.txt','licenses\resvg-LICENSE.txt','licenses\magick.net-q8-x64-Notice.txt','licenses\Magick.NET-LICENSE.txt')) { if(-not (Test-Path -LiteralPath (Join-Path $orbitConversion $orbitName) -PathType Leaf)) { throw "Missing conversion component: $orbitName" } }
 $orbitZip=[IO.Compression.ZipFile]::Open($orbitPackage,[IO.Compression.ZipArchiveMode]::Create)
 try {
     foreach($orbitName in $orbitFiles) { [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($orbitZip,(Join-Path $orbitApp $orbitName),('orbitals/'+$orbitName),[IO.Compression.CompressionLevel]::Optimal) | Out-Null }
@@ -26,5 +26,5 @@ try {
     try { $orbitWriter.Write((@{Repository=$Repository} | ConvertTo-Json -Compress)) } finally { $orbitWriter.Dispose() }
 } finally { $orbitZip.Dispose() }
 $orbitHash=(Get-FileHash -LiteralPath $orbitPackage -Algorithm SHA256).Hash.ToLowerInvariant()
-[IO.File]::WriteAllText((Join-Path $orbitOutput 'SHA256SUMS.txt'),($orbitHash+'  orbitals-Windows11.zip'+[Environment]::NewLine),[Text.UTF8Encoding]::new($false))
+[IO.File]::WriteAllText((Join-Path $orbitOutput 'SHA256SUMS.txt'),($orbitHash+'  '+[IO.Path]::GetFileName($orbitPackage)+[Environment]::NewLine),[Text.UTF8Encoding]::new($false))
 Write-Output $orbitPackage

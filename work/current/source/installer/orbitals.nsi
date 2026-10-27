@@ -22,22 +22,91 @@ VIAddVersionKey /LANG=1041 "LegalCopyright" "Orbitals"
 !define MUI_BGCOLOR "0F141B"
 !define MUI_TEXTCOLOR "EDF3F6"
 !define MUI_INSTFILESPAGE_COLORS "93E9C1 0F141B"
+!define MUI_CUSTOMFUNCTION_GUIINIT ThemeWindow
+!define MUI_CUSTOMFUNCTION_UNGUIINIT un.ThemeWindow
 !define MUI_WELCOMEFINISHPAGE_BITMAP "${SIDEBAR}"
-!define MUI_WELCOMEPAGE_TITLE "Orbitalsをインストール"
-!define MUI_WELCOMEPAGE_TEXT "planetのリングとorbitのジェスチャーを使うためのアプリです。$\r$\n$\r$\nこのユーザーだけにインストールします。管理者権限は不要です。$\r$\n$\r$\n設定はプログラムとは別の場所に保存し、更新時にも引き継ぎます。"
+!define MUI_WELCOMEPAGE_TITLE "Orbitals セットアップ"
+!define MUI_WELCOMEPAGE_TEXT "リングとマウスジェスチャーで、$\r$\nよく使う操作を実行するアプリです。$\r$\n$\r$\n保存先を選んでインストールできます。$\r$\n管理者権限は不要です。$\r$\n$\r$\n更新時も、現在の設定を引き継ぎます。"
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW ThemeWindow
 !insertmacro MUI_PAGE_WELCOME
+!define MUI_DIRECTORYPAGE_TEXT_TOP "Orbitalsを保存するフォルダーを選んでください。"
+!define MUI_DIRECTORYPAGE_TEXT_DESTINATION "インストール先"
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW ThemeDirectory
 !insertmacro MUI_PAGE_DIRECTORY
 Page custom MigrationPage MigrationLeave
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW ThemeInstall
 !insertmacro MUI_PAGE_INSTFILES
 !define MUI_FINISHPAGE_RUN "$INSTDIR\orbitals.exe"
-!define MUI_FINISHPAGE_RUN_TEXT "Orbitalsを起動する"
+!define MUI_FINISHPAGE_RUN_TEXT "設定画面を開く"
+!define MUI_FINISHPAGE_TITLE "準備ができました"
+!define MUI_FINISHPAGE_TEXT "Orbitalsをインストールしました。$\r$\n$\r$\nスタートメニューから設定画面を開けます。$\r$\n画面を閉じても、通知領域で動作を続けます。"
+!ifdef INSTALL_TEST
+  !define MUI_FINISHPAGE_RUN_NOTCHECKED
+!endif
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW ThemeFinish
 !insertmacro MUI_PAGE_FINISH
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW un.ThemeConfirm
 !insertmacro MUI_UNPAGE_CONFIRM
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW un.ThemeInstall
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_LANGUAGE "Japanese"
+SetFont "Yu Gothic UI" 10
 Var MigrationDirectory
 Var MigrationInput
 Var DataDirectory
+
+!macro ThemeWindow Prefix
+Function ${Prefix}ThemeWindow
+  SetCtlColors $HWNDPARENT "EDF3F6" "0F141B"
+  SetCtlColors $mui.Branding.Text "AFC1D0" "0F141B"
+  SetCtlColors $mui.Branding.Background "AFC1D0" "0F141B"
+  SetCtlColors $mui.Header.Text "EDF3F6" "0F141B"
+  SetCtlColors $mui.Header.SubText "AFC1D0" "0F141B"
+  ShowWindow $mui.Line.Standard ${SW_HIDE}
+  ShowWindow $mui.Line.FullWindow ${SW_HIDE}
+FunctionEnd
+!macroend
+!insertmacro ThemeWindow ""
+!insertmacro ThemeWindow "un."
+
+Function ThemeDirectory
+  Call ThemeWindow
+  System::Call 'uxtheme::SetWindowTheme(p $mui.DirectoryPage.DirectoryBox, w "", w "")'
+  SetCtlColors $mui.DirectoryPage "EDF3F6" "0F141B"
+  SetCtlColors $mui.DirectoryPage.Text "AFC1D0" "0F141B"
+  SetCtlColors $mui.DirectoryPage.DirectoryBox "EDF3F6" "0F141B"
+  SetCtlColors $mui.DirectoryPage.Directory "EDF3F6" "1B232D"
+  SetCtlColors $mui.DirectoryPage.SpaceRequired "AFC1D0" "0F141B"
+  SetCtlColors $mui.DirectoryPage.SpaceAvailable "AFC1D0" "0F141B"
+FunctionEnd
+
+Function ThemeFinish
+  Call ThemeWindow
+  System::Call 'uxtheme::SetWindowTheme(p $mui.FinishPage.Run, w "", w "")'
+  SetCtlColors $mui.FinishPage.Run "EDF3F6" "0F141B"
+FunctionEnd
+
+!macro ThemeInstall Prefix
+Function ${Prefix}ThemeInstall
+  Call ${Prefix}ThemeWindow
+  System::Call 'uxtheme::SetWindowTheme(p $mui.InstFilesPage.ProgressBar, w "", w "")'
+  SendMessage $mui.InstFilesPage.ProgressBar ${PBM_SETBARCOLOR} 0 0xC1E993
+  SendMessage $mui.InstFilesPage.ProgressBar ${PBM_SETBKCOLOR} 0 0x2D231B
+  SetCtlColors $mui.InstFilesPage "EDF3F6" "0F141B"
+  SetCtlColors $mui.InstFilesPage.Text "AFC1D0" "0F141B"
+  SetCtlColors $mui.InstFilesPage.Log "EDF3F6" "1B232D"
+FunctionEnd
+!macroend
+!insertmacro ThemeInstall ""
+!insertmacro ThemeInstall "un."
+
+Function un.ThemeConfirm
+  Call un.ThemeWindow
+  SetCtlColors $mui.UnConfirmPage "EDF3F6" "0F141B"
+  SetCtlColors $mui.UnConfirmPage.Text "AFC1D0" "0F141B"
+  SetCtlColors $mui.UnConfirmPage.DirectoryText "EDF3F6" "0F141B"
+  SetCtlColors $mui.UnConfirmPage.Directory "EDF3F6" "1B232D"
+FunctionEnd
 
 !macro MigrateSetting Name
   ${If} ${FileExists} "$MigrationDirectory\${Name}"
@@ -77,19 +146,27 @@ Function .onInit
 FunctionEnd
 
 Function MigrationPage
-  !insertmacro MUI_HEADER_TEXT "設定の引き継ぎ" "以前のZIP版の設定を引き継ぐ場合だけ指定します。"
+!ifdef INSTALL_TEST
+  StrCpy $DataDirectory "$INSTDIR\data"
+!endif
+  ${If} ${FileExists} "$DataDirectory\settings.json"
+    Abort
+  ${EndIf}
+  !insertmacro MUI_HEADER_TEXT "設定の引き継ぎ（任意）" "ポータブル版から移行する場合だけ指定します。"
+  Call ThemeWindow
   nsDialogs::Create 1018
   Pop $0
   SetCtlColors $0 "EDF3F6" "0F141B"
-  ${NSD_CreateLabel} 0 0 100% 32u "以前のorbitals.exeとsettings.jsonがあるフォルダーを選んでください。$\r$\n新規インストールの場合は空欄のまま進めます。"
+  ${NSD_CreateLabel} 0 6u 100% 26u "以前のOrbitalsのフォルダーを選んでください。$\r$\n引き継がない場合は、空欄のまま進めます。"
   Pop $1
   SetCtlColors $1 "EDF3F6" "0F141B"
-  ${NSD_CreateDirRequest} 0 42u 78% 14u "$MigrationDirectory"
+  ${NSD_CreateDirRequest} 0 42u 76% 16u "$MigrationDirectory"
   Pop $MigrationInput
-  ${NSD_CreateBrowseButton} 80% 41u 20% 16u "選ぶ…"
+  SetCtlColors $MigrationInput "EDF3F6" "1B232D"
+  ${NSD_CreateBrowseButton} 79% 40u 21% 20u "フォルダー…"
   Pop $1
   ${NSD_OnClick} $1 BrowseMigration
-  ${NSD_CreateLabel} 0 72u 100% 40u "設定と未保存の下書きをコピーします。元のフォルダーは変更しません。$\r$\nすでにインストール版の設定がある場合は、そちらを優先します。"
+  ${NSD_CreateLabel} 0 78u 100% 32u "設定と未保存の下書きをコピーします。$\r$\n元のファイルは変更しません。"
   Pop $1
   SetCtlColors $1 "B6C2CC" "0F141B"
   nsDialogs::Show
@@ -138,6 +215,7 @@ Section "Orbitals"
   CreateDirectory "$SMPROGRAMS\Orbitals"
   CreateShortCut "$SMPROGRAMS\Orbitals\Orbitals.lnk" "$INSTDIR\orbitals.exe" "" "$INSTDIR\orbitals.exe"
   CreateShortCut "$SMPROGRAMS\Orbitals\アンインストール.lnk" "$INSTDIR\Uninstall.exe"
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Orbitals" "DisplayName" "Orbitals"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Orbitals" "DisplayVersion" "${APP_VERSION}"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Orbitals" "DisplayIcon" "$INSTDIR\orbitals.exe"

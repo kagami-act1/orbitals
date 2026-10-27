@@ -8,10 +8,12 @@ foreach($entry in $manifest) { $path=Join-Path $dependencies $entry.File; if((Ge
 foreach($file in $manifest | Where-Object File -like '*.nupkg' | ForEach-Object { Get-Item -LiteralPath (Join-Path $dependencies $_.File) }) {
  $zip=[IO.Compression.ZipFile]::OpenRead($file.FullName)
  try {
-  $framework=if($file.Name -like 'system.numerics.vectors*'){'net46'}elseif($file.Name -match '^(system.buffers|system.memory|system.runtime.compilerservices.unsafe|system.threading.tasks.extensions)\.'){'net461'}else{'net462'}
+  $framework=if($file.Name -like 'magick.*'){'netstandard20'}elseif($file.Name -like 'system.numerics.vectors*'){'net46'}elseif($file.Name -match '^(system.buffers|system.memory|system.runtime.compilerservices.unsafe|system.threading.tasks.extensions)\.'){'net461'}else{'net462'}
   foreach($entry in $zip.Entries) {
    if($entry.FullName -match "^lib/$framework/[^/]+\.dll$" -and $entry.Name -notmatch '(BarCodes|Quality|Charting|Snippets)') { [IO.Compression.ZipFileExtensions]::ExtractToFile($entry,(Join-Path $destination $entry.Name),$true) }
    if($entry.FullName -match '^LICENSE(\.TXT|\.txt)?$'){ [IO.Compression.ZipFileExtensions]::ExtractToFile($entry,(Join-Path $destination ('licenses\'+$file.BaseName+'-LICENSE.txt')),$true) }
+   if($file.Name -like 'magick.*' -and $entry.FullName -match '^runtimes/win-x64/native/[^/]+\.dll$'){[IO.Compression.ZipFileExtensions]::ExtractToFile($entry,(Join-Path $destination $entry.Name),$true)}
+   if($file.Name -like 'magick.*' -and $entry.FullName -in @('Notice.txt','Copyright.txt')){$packageId=$file.BaseName -replace '\.\d+\.\d+\.\d+$','';[IO.Compression.ZipFileExtensions]::ExtractToFile($entry,(Join-Path $destination ('licenses\'+$packageId+'-'+$entry.Name)),$true)}
   }
  } finally {$zip.Dispose()}
 }
