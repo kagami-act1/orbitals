@@ -1,83 +1,63 @@
 # Orbitals
 
-Windows 11向けのリングランチャー・マウスジェスチャー。現行版は **1.0.1** です。
+Windows 11向けのリングランチャー・マウスジェスチャーアプリです。よく使う操作をマウスの近くから呼び出し、ファイルの変換もドラッグで行えます。
 
-[最新版のダウンロード](https://github.com/kagami-act1/orbitals/releases/latest)
+[最新版をダウンロード](https://github.com/kagami-act1/orbitals/releases/latest) · [使い方](work/current/使い方.md) · [変更履歴](CHANGELOG.md)
 
-| 配布形式 | ファイル名 | 使い方 |
-| --- | --- | --- |
-| インストーラー版 | `orbitals-Setup.exe` | セットアップで保存先を選び、スタートメニューから起動 |
-| ポータブル版（ZIP・インストール不要） | `orbitals-Portable-Windows11.zip` | ZIPを展開し、フォルダー内の `orbitals.exe` を起動 |
+## できること
 
-ポータブル版は設定も実行ファイルと同じフォルダーに保存します。フォルダーごと移動できます。公開済みの1.0.0では、ポータブル版のファイル名は `orbitals-Windows11.zip` です。
-
-- planet：リングにアクションを配置。中央のホイールで切替。スタック、キー保持、状態ごとのアイコンに対応。
-- マクロ：キー・待機に加え、アプリ起動・文字入力・ウィンドウ操作などを連結。ウィンドウの条件待ち、ステップ単位／途中からのテストに対応。
-- orbit：自作ジェスチャー、プリセット、アプリ別の割り当てに対応。
-- ファイル変換：画像・PDF・Word・Excel・PowerPointをドラッグしたまま形式を選んで変換。HEIC・AVIFの読み込み、ファイル・フォルダーのZIP圧縮とZIPの展開にも対応。Office文書は対応するMicrosoft Office、またはLibreOfficeを利用。
-
-## フォルダー
-
-| 場所 | 内容 |
+| 機能 | 内容 |
 | --- | --- |
-| `work/current/source` | 現行ソース、テスト、ビルド・パッケージ作成スクリプト |
-| `work/current/conversion` | ファイル変換に必要な実行ファイル・DLL・ライセンス |
-| `work/current/plugin-examples` | 自作プラグインのサンプル |
-| `work/current` の各文書 | 使い方、アイコン分類、プラグイン作成方法、ライセンス |
-| `work/build-tools/nsis-3.12` | インストーラーのコンパイラー |
-| `work/dependencies` | 変換ライブラリの再生成に使うパッケージと検証用ハッシュ |
-| `outputs` | 最新のインストーラー版、ポータブル版（ZIP）、SHA-256チェックサム |
+| planet ― リングランチャー | ショートカット、アプリ起動、音量調整などを円形メニューに配置。複数のリングを切り替えたり、スタックに操作をまとめたりできます。 |
+| orbit ― マウスジェスチャー | マウスの動きに操作を割り当て。プリセットから選ぶほか、自分で描いた形も登録できます。 |
+| マクロ | キー入力、文字入力、アプリ起動、待機などを組み合わせて、一連の操作を実行できます。 |
+| ドラッグで変換 | 画像・PDF・Office文書の変換、ZIPの圧縮・展開に対応。ファイルをつかんだまま変換先を選べます。 |
+| アプリ別設定 | 使用中のアプリに合わせてリングやジェスチャーを切り替え。機能を使わないアプリも指定できます。 |
 
-ソースは担当ごとに配置し、テストと素材を分けています。
+## インストール
 
-| `work/current/source` 内 | 担当 |
-| --- | --- |
-| `app` | 起動・常駐・設定モデル・保存・更新・アプリの状態アイコン |
-| `actions` | アクション実行・マクロ・キー入力・音声・プラグイン |
-| `planet` | リングの表示・配置編集・スタック・切替・呼び出し |
-| `orbit` | ジェスチャーの入力監視・認識・補正・描画 |
-| `conversion` | ファイルの判定・変換・変換画面・外部処理の管理 |
-| `ui` | 設定画面・共通コントロール・アクション用アイコンの選択と表示 |
-| `tests` | 自動テスト |
-| `assets/app` | アプリ用の実行中・停止・エラーICO。`source` 内は通常／小サイズ用の編集元SVG |
-| `icons` | アクション用Material Symbolsのカタログ・分類・生成処理 |
-| `installer` | インストーラーの定義・作成処理 |
-| `image-codec` | Windowsが読み込めない画像形式を補う別プロセスのソース |
+対応環境は **Windows 11・64bit** です。[ダウンロードページ](https://github.com/kagami-act1/orbitals/releases/latest)から、使い方に合う形式を選んでください。
 
-アプリアイコンは `assets/app/running.ico` を実行ファイル・ウィンドウ・セットアップに共用します。通知領域は `running.ico`・`stopped.ico`・`error.ico` を状態に応じて切り替えます。ICOは16・20・24・32・48・64・128・256pxを含み、16・20pxは小サイズ用の描画です。PNGの重複や旧生成スクリプトは置いていません。
-
-通常の利用では、スタートメニューの **Orbitals** から設定画面を開きます。常駐中でも、同じ操作で画面を開けます。インストール済みアプリの設定はこの作業フォルダー外の `%LOCALAPPDATA%\Orbitals` に保存します。
-
-## 開発
-
-バージョン番号はGitHubの公開版を基準にします。未公開の変更は次回版へまとめ、公開するまでは修正ごとに番号を増やしません。
-
-Windows 11・64bitの.NET Framework 4.8でビルドします。変換用のDLL・実行ファイルと各ライセンスはソースと一緒に管理しています。
-
-Gitから取得した場合、インストーラーの作成時は[NSIS](https://nsis.sourceforge.io/Download) 3.12を `work/build-tools/nsis-3.12` に展開してください。依存パッケージの再展開用キャッシュはローカル専用です。
-
-このフォルダーをカレントディレクトリとして実行します。
-
-```powershell
-.\work\current\source\build.ps1
-.\work\current\orbitals.exe --self-test "$env:TEMP\orbitals-self-test.txt"
-.\work\current\source\package.ps1 -Repository kagami-act1/orbitals -OutputDirectory .\work\current\distribution
-.\work\current\source\installer\build-installer.ps1 -Package .\work\current\distribution\orbitals-Portable-Windows11.zip -Compiler .\work\build-tools\nsis-3.12\makensis.exe -Output .\work\current\distribution\orbitals-Setup.exe
-```
-
-`work/prepare-conversion.ps1` は、保存済みパッケージのハッシュを確認して変換ライブラリを再展開します。
-
-変換はプラットフォームやアプリの公式機能を優先します。追加部品は、標準機能が不足する形式・処理を担当します。
-
-| 担当 | ソース | 呼び出す機能 |
+| 配布形式 | ファイル | 始め方 |
 | --- | --- | --- |
-| 文書の判定・検証・保存 | `conversion/DocumentConversion.cs` | 変換アプリとの共通インターフェース |
-| Microsoft Office | `conversion/OfficeDocumentConverter.cs` | Word・Excelの保存／PDF出力、PowerPointのスライド画像出力 |
-| LibreOffice | `conversion/LibreOfficeConverter.cs` | インストール済みアプリの公式コマンドライン変換 |
-| 画像の読み込み | `conversion/RasterImageDecoder.cs`・`conversion/WindowsImageDecoder.cs` | Windows画像API・WPFを優先し、不足する形式は専用部品で補完 |
-| PDFの画像化・OCR・ZIP | `conversion/WindowsPdf.cs`・`conversion/WindowsOcr.cs`・`conversion/ArchiveConversion.cs` | Windows API・.NET標準ライブラリ |
-| 外部処理の管理 | `conversion/ConversionProcesses.cs`・`conversion/ChildProcessJob.cs` | 中止・制限・後始末を共通化 |
+| インストーラー版 | `orbitals-Setup.exe` | セットアップでインストール先を選び、スタートメニューの「Orbitals」から起動します。 |
+| ポータブル版（インストール不要） | `orbitals-Portable-Windows11.zip` | ZIPを展開し、フォルダー内の `orbitals.exe` を起動します。設定も同じフォルダーに保存されます。 |
 
-PDFの作成・結合・分割にはPDFsharp、WebPの書き出しにはGoogle libwebp、SVGにはresvgを使用します。HEIC・AVIF用の同梱部品は、Windows側で読み込めない場合に使用します。これらは変換ワーカー内で動作し、常駐側に画像ライブラリを読み込みません。
+Office文書の変換には、対応するMicrosoft Officeアプリ、またはLibreOfficeが必要です。
 
-インストーラーはWindowsの通常のデスクトップ起動経路から実行し、設定が別アプリの仮想保存先へ振り分けられていないことを確認します。GitHubへの公開・更新は、明示的な依頼があった場合だけ行います。
+## 基本の使い方
+
+### リングから操作する
+
+1. **Ctrl+Alt+F9** を押すと、カーソル位置にplanetが開きます。
+2. 実行したい項目をクリックします。中央・右クリック・Escで閉じられます。
+3. 複数のplanetを用意した場合は、中央でホイールを回して切り替えられます。
+
+呼び出しキーは、右上の歯車 →「操作」から変更できます。マウスのボタンに同じキーを割り当てると、マウスから呼び出せます。
+
+### ジェスチャーで操作する
+
+初期設定では、**右ボタンを押しながら動かし、離す**と操作を実行します。左へ動かすと「戻る」、右へ動かすと「進む」です。Escでキャンセルできます。
+
+「orbit」タブの「＋追加」から動きを登録し、右側のアクション一覧で実行内容を指定します。
+
+### ファイルを変換する
+
+1. ファイルを左ボタンでつかみ、ドラッグを始めます。
+2. つかんだままplanetの呼び出しキーを押します。
+3. 表示された変換先の上でボタンを離します。
+
+変換したファイルは元と同じ場所に保存します。元の場所が分からない場合は、その都度保存先を尋ねます。元ファイルは残ります。
+
+### 自分の操作に合わせる
+
+「planet」「orbit」「アプリ」「変換」の各タブで設定し、**「保存」**で反映します。planetにはアクション一覧からドラッグして配置でき、配置した項目をクリックすると内容を編集できます。大きさ・色・呼び出しキー・自動起動は、右上の歯車から変更します。
+
+## 常駐と更新
+
+- 設定画面の **×** を押しても常駐します。スタートメニューから設定画面を開き直せます。
+- 通知領域のアイコンを左クリックすると一時停止・再開します。完全に終了する場合は、右クリック →「終了」を選びます。
+- Windowsへのログイン時に起動する場合は、歯車 →「起動・管理」で自動起動を有効にして保存します。
+- 更新は歯車の左隣の「更新の確認」から確認できます。更新するときはOrbitalsを終了してから新しいセットアップを実行します。保存済みの設定は引き継ぎます。
+
+詳しい設定方法は[使い方](work/current/使い方.md)を参照してください。
