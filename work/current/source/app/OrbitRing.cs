@@ -315,6 +315,7 @@ namespace OrbitRing {
         readonly PluginRunner pluginRunner=new PluginRunner();
         System.Drawing.Icon trayIcon;
         DispatcherTimer idleCleanup;
+        bool releasedEditor;
         Action playbackCompleted;
         public Preferences Presentation(IEnumerable<ActionItem> items=null) {
             List<ActionItem> actual=(items??ActiveItems??Config.Items).ToList();
@@ -341,7 +342,7 @@ namespace OrbitRing {
             string loadError=null;
             if(File.Exists(configPath)) { try { Preferences read=Json.ReadFile<Preferences>(configPath); if(read==null) throw new Exception("設定が空です。"); read.Validate(); PlanetStack.UpgradeLegacy(read); Config=read; } catch(Exception ex) { settingsLoadFailed=true; loadError="設定を読み込めませんでした。初期設定で起動します。\n元のファイルは保存するまで変更しません。\n"+ex.Message; } }
             ActiveItems=Config.Items;
-            if(AppPaths.IsInstalled && Config.StartWithWindows) try { StartupRegistration.Write(StartupRegistration.Desired(true)); } catch(Exception ex) { loadError="ログイン時の自動起動を更新できませんでした。\n"+ex.Message; }
+            if(AppPaths.IsInstalled && Config.StartWithWindows) try { string desired=StartupRegistration.Desired(true); if(!String.Equals(StartupRegistration.Read(),desired,StringComparison.Ordinal)) StartupRegistration.Write(desired); } catch(Exception ex) { loadError="ログイン時の自動起動を更新できませんでした。\n"+ex.Message; }
             HwndSourceParameters p=new HwndSourceParameters(InstanceActivation.ReceiverName) { ParentWindow=new IntPtr(-3), Width=0, Height=0, WindowStyle=0 };
             receiver=new HwndSource(p); receiver.AddHook(Message);
             bool registered=RegisterPlanetKeys(Config);
@@ -353,9 +354,10 @@ namespace OrbitRing {
             idleCleanup.Tick+=delegate {
                 idleCleanup.Stop();
                 if(settings!=null || busy || conversionPlanets!=null || conversionActivity!=null || conversionJobs.Any(j=>j.Running) || (ring!=null && ring.IsVisible)) return;
-                MaterialIcons.ReleaseCatalog(Config);
-                // Collect released UI only after activity has settled.
-                GC.Collect(2,GCCollectionMode.Forced,true,true);
+                bool collect=releasedEditor || MaterialIcons.CatalogLoaded;
+                MaterialIcons.ReleaseCatalog(Config); releasedEditor=false;
+                // A small ring dismissal should not force a blocking, compacting collection.
+                if(collect) GC.Collect(2,GCCollectionMode.Optimized,false);
             };
             playbackTimer=new DispatcherTimer { Interval=TimeSpan.FromMilliseconds(15) };
             playbackTimer.Tick+=delegate {
@@ -432,7 +434,7 @@ namespace OrbitRing {
             if(idleCleanup!=null) idleCleanup.Stop();
             if(settings==null) {
                 settings=new SettingsWindow(this);
-                settings.Closed+=delegate { settings.ReleaseResources(); settings=null; idleCleanup.Start(); };
+                settings.Closed+=delegate { settings.ReleaseResources(); settings=null; releasedEditor=true; idleCleanup.Start(); };
                 settings.Show();
             }
             else { if(settings.WindowState==WindowState.Minimized) settings.WindowState=WindowState.Normal; settings.Show(); }
@@ -443,7 +445,7 @@ namespace OrbitRing {
             if(Diagnostic) { Config=next; ActiveItems=next.Items; settingsLoadFailed=false; return; }
             if(next.PlanetEnabled!=Config.PlanetEnabled || next.Orbit.Enabled!=Config.Orbit.Enabled) { HideRing(); CloseOrbitFrame(); }
             string previousStartup=StartupRegistration.Read(), desiredStartup=StartupRegistration.Desired(next.StartWithWindows);
-            bool startupChanged=next.StartWithWindows!=Config.StartWithWindows || (next.StartWithWindows && previousStartup!=desiredStartup);
+            bool startupChanged=!String.Equals(previousStartup,desiredStartup,StringComparison.Ordinal);
             ReplacePlanetKeys(next);
             try {
                 if(startupChanged) StartupRegistration.Write(desiredStartup);

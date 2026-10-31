@@ -5,6 +5,36 @@ using System.Linq;
 namespace OrbitRing {
     static class ReliabilityTests {
         static void Check(bool value,string name,List<string> results) { if(!value) throw new Exception(name); results.Add("PASS "+name); }
+        static void CheckIconCache(List<string> results) {
+            Preferences empty=Preferences.Defaults(); empty.Items.Clear(); empty.Orbit.Bindings.Clear();
+            foreach(DropKind source in ConversionCatalog.Sources) empty.Conversion.List(source).Clear();
+            MaterialIcons.ReleaseCatalog(empty);
+            Check(MaterialIcons.CachedCount==0 && !MaterialIcons.CatalogLoaded,"unused icon cache and search catalog are released",results);
+
+            Preferences config=Preferences.Defaults(); config.Items[0]=ActionCatalog.Create().Single(p=>p.Item.Label=="ミュート切替").Create(); config.Items[0].Toggle.Stages[0].Icon="ms:star";
+            PlanetProfile additional=UserContent.NewPlanet(config); additional.Items[0]=PlanetStack.Create(new ActionItem("Home","shortcut","Ctrl+Home") { Icon="ms:home" }); config.Planets.Add(additional);
+            ApplicationSettings app=new ApplicationSettings { Executable="sample.exe" };
+            ApplicationPlanet appPlanet=new ApplicationPlanet { PlanetId="main",Items=Enumerable.Range(0,8).Select(i=>PlanetStack.Empty()).ToList() };
+            appPlanet.Items[0]=new ActionItem("Microphone","microphone","") { MuteIcons=new MuteIcons { Muted="ms:lock",Unmuted="ms:favorite" } }; app.Planets.Add(appPlanet); config.Applications.Add(app);
+            string[] conversionIcons={"ms:camera","ms:picture_as_pdf","ms:description","ms:table_view","ms:slideshow","ms:folder_zip","ms:unarchive"};
+            for(int i=0;i<ConversionCatalog.Sources.Length;i++) config.Conversion.List(ConversionCatalog.Sources[i])[0].Icon=conversionIcons[i];
+            MaterialIcons.ReleaseCatalog(config);
+            Check(MaterialIcons.CachedCount==0,"idle cleanup does not load configured icons into a cold cache",results);
+            string[] selected=new[]{"ms:star","ms:home","ms:lock","ms:favorite"}.Concat(conversionIcons).ToArray();
+            MaterialIcons.Prepare(selected); Dictionary<string,MaterialIcon> loaded=selected.ToDictionary(key=>key,key=>MaterialIcons.Find(key));
+            Check(loaded.Values.All(icon=>icon!=null),"configured icons can be prepared without opening the search catalog",results);
+            MaterialIcons.Find("ms:delete");
+            MaterialIcons.ReleaseCatalog(config);
+            Check(!MaterialIcons.CatalogLoaded && MaterialIcons.CachedCount==selected.Length && loaded.All(pair=>Object.ReferenceEquals(pair.Value,MaterialIcons.Find(pair.Key))),"cleanup reuses additional planet stack app mute-state toggle and all conversion-source icons",results);
+            MaterialIcons.ReleaseCatalog(config);
+            Check(MaterialIcons.CachedCount==selected.Length && loaded.All(pair=>Object.ReferenceEquals(pair.Value,MaterialIcons.Find(pair.Key))),"repeated idle cleanup does not reload or expand the icon cache",results);
+            config.Planets.Clear(); config.Applications.Clear(); foreach(DropKind source in ConversionCatalog.Sources) config.Conversion.List(source).Clear();
+            MaterialIcons.ReleaseCatalog(config);
+            Check(MaterialIcons.CachedCount==1 && Object.ReferenceEquals(loaded["ms:star"],MaterialIcons.Find("ms:star")),"removing configured actions releases their cached vectors",results);
+            Check(MaterialIcons.All.Count==4001 && MaterialIcons.Categories.Sum(c=>c.Count)==4001,"picker catalog reloads completely after idle release",results);
+            MaterialIcons.ReleaseCatalog(config);
+            Check(!MaterialIcons.CatalogLoaded && MaterialIcons.CachedCount<64,"closing the picker discards thousands of unconfigured search records",results);
+        }
         public static List<string> Run() {
             List<string> results=new List<string>();
             ActionItem mute=ActionCatalog.Create().Single(p=>p.Item.Label=="ミュート切替").Create();
@@ -25,12 +55,7 @@ namespace OrbitRing {
             Check(rejected,"invalid explicit mute state rejected",results);
             config=Preferences.Defaults(); config.Items[0]=ActionCatalog.Create().Single(p=>p.Item.Label=="ミュート切替").Create();
             config.Items[0].Toggle.Stages[0].Icon="ms:star";
-            MaterialIcons.ReleaseCatalog(config);
-            HashSet<string> retained=new HashSet<string> { "ms:volume_up","ms:volume_off" }; foreach(ActionItem action in config.Items) { retained.Add(ActionIcons.EffectiveKey(action)); if(action.Toggle!=null) foreach(ToggleStage stage in action.Toggle.Stages) retained.Add(ActionIcons.EffectiveKey(stage.Action())); }
-            foreach(ConversionChoice choice in config.Conversion.Images.Concat(config.Conversion.Pdf).Concat(config.Conversion.Files).Concat(config.Conversion.Archives)) if(choice.Enabled) retained.Add(ActionIcons.EffectiveKey(choice.Action()));
-            Check(!MaterialIcons.CatalogLoaded && MaterialIcons.CachedCount<=retained.Count,"idle icon cache retains only configured states and automatic ring icons",results);
-            Check(MaterialIcons.Find("ms:star")!=null && MaterialIcons.Find(null)==null && !MaterialIcons.CatalogLoaded,"runtime icon lookup does not reload full catalog",results);
-            Check(MaterialIcons.All.Count==4001 && MaterialIcons.Categories.Sum(c=>c.Count)==4001,"picker catalog reloads completely after idle release",results);
+            CheckIconCache(results);
             using(Controller controller=new Controller(true)) { controller.Apply(config); Preferences view=controller.Presentation(); string label=controller.Config.Items[0].Label; view.Items[0].Label="display only"; Check(controller.Config.Items[0].Label==label && view.Items.Count==config.Items.Count && view.Appearance.RingAccent==config.Appearance.RingAccent,"lightweight ring presentation keeps saved actions independent",results); }
             Check(AppIcon.Image.IsFrozen,"application icon is embedded and immutable",results);
             using(System.Drawing.Icon icon=AppIcon.Tray()) Check(icon.Width==32 && icon.Height==32,"tray icon uses embedded 32 pixel artwork",results);

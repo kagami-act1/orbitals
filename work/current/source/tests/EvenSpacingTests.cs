@@ -14,7 +14,7 @@ namespace OrbitRing {
                 PlanetMenu menu=new PlanetMenu(items,76,PlanetStack.DefaultGap,true); bool correct=menu.Targets.Count==count && menu.Hit(new Point(205,205))==-1;
                 for(int i=0;i<count;i++) { PlanetTarget target=menu.Targets[i]; correct &= (target.Position-PlanetMenu.Polar(131,-Math.PI/2+i*2*Math.PI/count)).Length<.001 && menu.Hit(PlanetMenu.Polar(250,target.Angle))==target.Id && menu.IconHit(target.Position)==target.Id && menu.KeyboardTarget(i)==target.Id && menu.Number(target.Id)==i+1; }
                 PlanetEditorLayout edit=new PlanetEditorLayout(items,new int[0],0,PlanetStack.DefaultGap,true);
-                correct &= edit.Targets.Count==count+(count<8?1:0) && edit.Targets.Where(t=>t.Item.Kind!="none").All(t=>menu.Targets.Any(m=>m.Slot==t.Slot && (m.Position-t.Position).Length<.001)) && Json.Write(items)==before;
+                correct &= edit.Targets.Count==count+(count==0?1:0) && edit.Targets.Where(t=>t.Item.Kind!="none").All(t=>menu.Targets.Any(m=>m.Slot==t.Slot && (m.Position-t.Position).Length<.001)) && Json.Write(items)==before;
                 Check(correct,"even layout keeps drawing selection keys and editor positions consistent with "+count+" actions",result);
             }
             var sparse=Enumerable.Range(0,8).Select(i=>PlanetStack.Empty()).ToList(); sparse[1]=new ActionItem("A","shortcut","F8"); sparse[4]=new ActionItem("B","shortcut","F9"); sparse[7]=PlanetStack.Create();
@@ -25,6 +25,16 @@ namespace OrbitRing {
             sparse[7].StackMode="arc"; sparse[7].Children=new List<ActionItem> { new ActionItem("Copy","shortcut","Ctrl+C"),new ActionItem("Paste","shortcut","Ctrl+V") };
             even=new PlanetMenu(sparse,76,20,true); even.Open(2); PlanetLayer arc=even.Layers.Last();
             Check(arc.Arc && !arc.Uniform && Math.Abs(PlanetMenu.InnerEdge(arc)-PlanetMenu.OuterEdge(even.Layers[0])-20)<.001 && arc.Targets.All(t=>even.Hit(t.Position)==t.Id),"uniform circular rings preserve arc stack spacing and hit selection",result);
+            int inserted; ActionItem added=new ActionItem("C","shortcut","Ctrl+C");
+            var changed=EditorInsertion.Prepare(sparse,4,added,-1,0,out inserted);
+            Check(changed!=null && changed.Count==8 && changed.Take(4).Select(a=>a.Label).SequenceEqual(new[]{"A","C","B",sparse[7].Label}) && inserted==1,"gap insertion consumes a vacant slot without replacing existing actions",result);
+            changed=EditorInsertion.Prepare(sparse,8,sparse[1],1,0,out inserted);
+            Check(changed!=null && changed.Count==8 && changed.Take(3).Select(a=>a.Label).SequenceEqual(new[]{"B",sparse[7].Label,"A"}),"dragging an existing action to a gap reorders it without duplication",result);
+            Check(EditorInsertion.Prepare(config.Items,1,added,-1,0,out inserted)==null,"full circular rings reject insertion without deleting an action",result);
+            var editor=new LayoutEditor(); config.Items=sparse; editor.Bind(config,1); editor.Measure(new Size(editor.Width,editor.Height)); editor.Arrange(new Rect(0,0,editor.Width,editor.Height));
+            Check(editor.Children.OfType<System.Windows.Controls.Button>().All(b=>!(b.Content is System.Windows.Controls.TextBlock) || ((System.Windows.Controls.TextBlock)b.Content).Text!="＋ 追加"),"nonempty uniform rings have no detached add button",result);
+            var gap=editor.InsertionAt(new Point(430+131*1.5*Math.Cos(-Math.PI/2+Math.PI/3),320+131*1.5*Math.Sin(-Math.PI/2+Math.PI/3)),added,null);
+            Check(gap!=null && gap.Slot==4 && editor.InsertionAt(new Point(430,320),added,null)==null,"uniform ring gap hit testing identifies insertion order and excludes the center",result);
             return result;
         }
     }

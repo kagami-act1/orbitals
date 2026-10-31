@@ -17,6 +17,12 @@ namespace OrbitRing {
         public static bool IsImage(string key) { return key!=null && key.StartsWith(Prefix,StringComparison.Ordinal); }
         public static string Share(string key) { if(!IsImage(key)) return key; lock(gate) { LinkedListNode<Entry> entry; return cache.TryGetValue(key,out entry)?entry.Value.Key:key; } }
         public static void ClearCache() { lock(gate) { cache.Clear(); recent.Clear(); } }
+        public static void Retain(ISet<string> keys) {
+            lock(gate) {
+                LinkedListNode<Entry> entry=recent.First;
+                while(entry!=null) { LinkedListNode<Entry> next=entry.Next; if(!keys.Contains(entry.Value.Key)) { cache.Remove(entry.Value.Key); recent.Remove(entry); } entry=next; }
+            }
+        }
         public static int CachedCount { get { lock(gate) return cache.Count; } }
         static bool Png(byte[] data) { return data.Length>=24 && data[0]==137 && data[1]==80 && data[2]==78 && data[3]==71 && data[4]==13 && data[5]==10 && data[6]==26 && data[7]==10 && data[12]==73 && data[13]==72 && data[14]==68 && data[15]==82; }
         static uint Number(byte[] data,int offset) { return (uint)data[offset]<<24 | (uint)data[offset+1]<<16 | (uint)data[offset+2]<<8 | data[offset+3]; }

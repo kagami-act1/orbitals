@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -23,6 +23,9 @@ namespace OrbitRing {
         public Action<int[],int> SelectionChanged,Entered,Erased;
         public Action<int[],int,int[],int> Moved;
         public Action<int[],int,ActionItem> Assigned;
+        public Action<int[],int,ActionItem,int> Inserted;
+        EditorTarget insertion;
+        Border insertionMarker;
         const double EditorScale=1.5, EditorButtonSize=76;
         readonly List<Button> buttons=new List<Button>();
         PlanetEditorLayout layout;
@@ -38,7 +41,7 @@ namespace OrbitRing {
         TextBlock centerTitle,centerDetail;
         public LayoutEditor() {
             Width=860; Height=640; Background=Brushes.Transparent; AllowDrop=true;
-            DragOver+=Over; Drop+=Dropped; DragLeave+=delegate { target=-1; Highlight(); };
+            DragOver+=Over; Drop+=Dropped; DragLeave+=delegate { target=-1; insertion=null; Highlight(); };
             PreviewMouseMove+=delegate(object sender,MouseEventArgs e) { if(pressed!=null && UpdateMove(e.GetPosition(this),e.LeftButton==MouseButtonState.Pressed)) e.Handled=true; };
             PreviewMouseLeftButtonUp+=delegate(object sender,MouseButtonEventArgs e) { if(FinishMove(e.GetPosition(this))) e.Handled=true; };
             PreviewKeyDown+=delegate(object sender,KeyEventArgs e) { if(moving && e.Key==Key.Escape) { CancelMove(true); e.Handled=true; } };
@@ -59,7 +62,7 @@ namespace OrbitRing {
         void Put(UIElement element,double x,double y) { SetLeft(element,x); SetTop(element,y); Children.Add(element); }
         public void Bind(Preferences value,int selection,int[] path=null) {
             CancelMove(true);
-            rootItems=value.Items; appearance=value.Appearance; target=-1; offset=new Vector(); Children.Clear(); buttons.Clear();
+            rootItems=value.Items; appearance=value.Appearance; target=-1; insertion=null; insertionMarker=null; offset=new Vector(); Children.Clear(); buttons.Clear();
             layout=new PlanetEditorLayout(value.Items,path??new int[0],selection,value.Appearance.StackGap,value.Appearance.EvenSpacing);
             if(!appearance.TextOnly) MaterialIcons.Prepare(layout.Targets.Select(item=>ActionIcons.EffectiveKey(item.Item)));
             Rect bounds=new Rect(0,0,860,640);
@@ -89,6 +92,8 @@ namespace OrbitRing {
                 foreach(UIElement child in Children) { double left=GetLeft(child),top=GetTop(child); SetLeft(child,(Double.IsNaN(left)?0:left)+shift.X); SetTop(child,(Double.IsNaN(top)?0:top)+shift.Y); }
             }
             Width=complete.Width; Height=complete.Height;
+            insertionMarker=new Border { Width=38,Height=38,CornerRadius=new CornerRadius(19),Background=appearance.Selected,BorderBrush=appearance.Accent,BorderThickness=new Thickness(2),IsHitTestVisible=false,Visibility=Visibility.Collapsed,Child=new TextBlock { Text="＋",FontSize=24,Foreground=Ui.Ink,HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center } };
+            Children.Add(insertionMarker);
             Highlight();
         }
         void DrawArc(PlanetLayer layer) {
@@ -140,7 +145,7 @@ namespace OrbitRing {
             if(!down) { CancelMove(true); return false; }
             if(pressed==null || movingItem.Item.Kind=="none") return false;
             if(!moving && (point-start).Length<6) return false;
-            moving=true; target=DropSlot(point);
+            moving=true; target=DropSlot(point); insertion=target<0?InsertionAt(point,movingItem.Item,movingItem):null;
             if(target>=0) { EditorTarget destination=layout.Targets[target]; EditorMove plan=EditorMove.Plan(rootItems,movingItem.Path,movingItem.Slot,destination.Path,destination.Slot); moveHint=plan.Allowed?plan.Hint:plan.Error; if(!plan.Allowed) target=-1; } else moveHint=null;
             Highlight(); return true;
         }
@@ -148,13 +153,15 @@ namespace OrbitRing {
             if(!moving && pressed!=null) UpdateMove(point,true);
             if(!moving) { CancelMove(false); return false; }
             EditorTarget from=movingItem; int index=DropSlot(point);
+            EditorTarget gap=index<0?InsertionAt(point,from.Item,from):null;
+            if(gap!=null) { CancelMove(true); if(Inserted!=null) Inserted(gap.Path,gap.Slot,from.Item,from.Slot); return true; }
             EditorTarget to=index<0?null:layout.Targets[index];
             CancelMove(true);
             if(to!=null && !(from.Slot==to.Slot && from.Path.SequenceEqual(to.Path)) && Moved!=null) Moved(from.Path,from.Slot,to.Path,to.Slot);
             return true;
         }
         void CancelMove(bool release) {
-            Button source=pressed; pressed=null; movingItem=null; moving=false; target=-1; moveHint=null;
+            Button source=pressed; pressed=null; movingItem=null; moving=false; target=-1; insertion=null; moveHint=null;
             if(release && source!=null && source.IsMouseCaptured) source.ReleaseMouseCapture();
             Highlight();
         }
@@ -174,7 +181,30 @@ namespace OrbitRing {
             for(int i=0;i<buttons.Count;i++) { bool selected=layout.IsSelected(layout.Targets[i]),expanded=layout.IsExpanded(layout.Targets[i]); buttons[i].Background=selected || i==target?appearance.Selected:Ui.Panel; buttons[i].BorderBrush=selected || expanded || i==target?appearance.Accent:Ui.Line; }
             EditorTarget chosen=layout.Targets.FirstOrDefault(layout.IsSelected);
             if(centerTitle!=null) { centerTitle.Text=target>=0?"ここに配置":chosen!=null && chosen.Item.Kind=="stack"?"スタック":"配置を編集"; centerDetail.Text=chosen!=null && chosen.Item.Kind=="stack"?chosen.Item.Label:"ドラッグで並べ替え"; }
-            if(moving && moveHint!=null) { centerTitle.Text=target>=0?moveHint:"移動できません"; centerDetail.Text=target>=0?layout.Targets[target].Item.Label:moveHint; }
+            if(insertionMarker!=null) {
+                insertionMarker.Visibility=insertion==null?Visibility.Collapsed:Visibility.Visible;
+                if(insertion!=null) { Point p=Project(insertion.Position); SetLeft(insertionMarker,p.X-19); SetTop(insertionMarker,p.Y-19); centerTitle.Text="ここに挿入"; centerDetail.Text="離すと項目の間に配置"; }
+            }
+            if(insertion==null && moving && moveHint!=null) { centerTitle.Text=target>=0?moveHint:"移動できません"; centerDetail.Text=target>=0?layout.Targets[target].Item.Label:moveHint; }
+        }
+        internal EditorTarget InsertionAt(Point point,ActionItem action,EditorTarget from) {
+            if(layout==null || action==null) return null;
+            foreach(PlanetLayer layer in layout.Menu.Layers.Where(l=>l.Uniform).Reverse()) {
+                EditorTarget[] shown=layout.Targets.Where(t=>t.Depth==layer.Depth && t.Item.Kind!="none").ToArray();
+                if(shown.Length==0) continue;
+                int[] path=shown[0].Path;
+                if(from!=null && !from.Path.SequenceEqual(path)) continue;
+                IList<ActionItem> items=PlanetEditorLayout.Resolve(rootItems,path);
+                for(int i=0;i<shown.Length;i++) {
+                    double angle=shown[i].Angle+Math.PI/shown.Length;
+                    Point position=PlanetMenu.Polar(layer.Radius,angle);
+                    if((Project(position)-point).Length>36) continue;
+                    int before=i==shown.Length-1?items.Count:shown[i+1].Slot,selected;
+                    if(EditorInsertion.Prepare(items,before,action,from==null?-1:from.Slot,path.Length,out selected)==null) return null;
+                    return new EditorTarget { Path=path,Slot=before,Position=position };
+                }
+            }
+            return null;
         }
         bool CanDrop(int index) {
             if(!EditorDrag.Active || EditorDrag.Item==null || index<0 || index>=layout.Targets.Count) return false;
@@ -182,11 +212,15 @@ namespace OrbitRing {
             return EditorDrag.Item.Kind!="stack" || item.Depth<PlanetStack.MaxDepth;
         }
         void Over(object sender,DragEventArgs e) {
-            target=DropSlot(e.GetPosition(this)); if(!CanDrop(target)) target=-1;
-            e.Effects=target<0?DragDropEffects.None:DragDropEffects.Copy; Highlight(); e.Handled=true;
+            target=DropSlot(e.GetPosition(this)); insertion=target<0 && EditorDrag.Active?InsertionAt(e.GetPosition(this),EditorDrag.Item,null):null; if(!CanDrop(target)) target=-1;
+            e.Effects=target<0 && insertion==null?DragDropEffects.None:DragDropEffects.Copy; Highlight(); e.Handled=true;
         }
         void Dropped(object sender,DragEventArgs e) {
-            int to=DropSlot(e.GetPosition(this)); bool allowed=CanDrop(to); target=-1; Highlight(); e.Handled=true; e.Effects=DragDropEffects.None;
+            int to=DropSlot(e.GetPosition(this));
+            EditorTarget gap=to<0 && EditorDrag.Active?InsertionAt(e.GetPosition(this),EditorDrag.Item,null):null;
+            insertion=null;
+            if(gap!=null) { target=-1; Highlight(); e.Handled=true; e.Effects=DragDropEffects.Copy; if(Inserted!=null) Inserted(gap.Path,gap.Slot,EditorDrag.Item,-1); return; }
+            bool allowed=CanDrop(to); target=-1; Highlight(); e.Handled=true; e.Effects=DragDropEffects.None;
             if(!allowed) return; EditorTarget item=layout.Targets[to];
             if(Assigned!=null) { Assigned(item.Path,item.Slot,EditorDrag.Item.Clone()); e.Effects=DragDropEffects.Copy; }
         }

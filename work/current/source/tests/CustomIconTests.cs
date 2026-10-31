@@ -55,9 +55,17 @@ namespace OrbitRing {
                 Save(png,new PngBitmapEncoder(),Artwork(128,128,4)); string detailed=CustomIcons.Import(png);
                 Preferences detailedConfig=Preferences.Defaults(); foreach(ActionItem action in detailedConfig.Items) action.Icon=detailed; string detailedJson=Json.Write(detailedConfig);
                 Check(detailedJson.Length>256*1024 && Json.Read<Preferences>(detailedJson).Items.All(a=>a.Icon==detailed),"multiple detailed icons fit within the bounded JSON settings format",r);
-                for(int i=0;i<40;i++) { Save(png,new PngBitmapEncoder(),Artwork(8,8,i)); CustomIcons.Import(png); }
+                string lastImported=null;
+                for(int i=0;i<40;i++) { Save(png,new PngBitmapEncoder(),Artwork(8,8,i)); lastImported=CustomIcons.Import(png); }
                 Check(CustomIcons.CachedCount<=32,"decoded custom icon cache has a fixed memory bound",r);
-                MaterialIcons.ReleaseCatalog(config); Check(CustomIcons.CachedCount==0,"idle resource release clears decoded custom images",r);
+                PlanetProfile additional=UserContent.NewPlanet(config); additional.Items[0].Icon=detailed; config.Planets.Add(additional); config.Conversion.Documents[0].Icon=lastImported;
+                BitmapSource mainImage=CustomIcons.Read(key),planetImage=CustomIcons.Read(detailed),documentImage=CustomIcons.Read(lastImported);
+                MaterialIcons.ReleaseCatalog(config);
+                Check(CustomIcons.CachedCount==3 && Object.ReferenceEquals(mainImage,CustomIcons.Read(key)) && Object.ReferenceEquals(planetImage,CustomIcons.Read(detailed)) && Object.ReferenceEquals(documentImage,CustomIcons.Read(lastImported)),"idle cleanup keeps decoded configured main additional planet and document icons while discarding unused imports",r);
+                MaterialIcons.ReleaseCatalog(config);
+                Check(CustomIcons.CachedCount==3 && Object.ReferenceEquals(mainImage,CustomIcons.Read(key)),"repeated idle cleanup reuses custom bitmaps without decoding them again",r);
+                config.Planets.Clear(); config.Conversion.Documents[0].Icon=null; MaterialIcons.ReleaseCatalog(config);
+                Check(CustomIcons.CachedCount==1 && Object.ReferenceEquals(mainImage,CustomIcons.Read(key)),"removed custom icon assignments release their cached bitmaps",r);
                 Check(ActionIcons.Visual(config.Items[0],28) is Image && ActionIcons.Label(key)=="自作の画像","custom images reload independently of the bundled icon catalog",r);
             } finally { foreach(string path in files) if(File.Exists(path)) File.Delete(path); Directory.Delete(folder); CustomIcons.ClearCache(); }
             return r;

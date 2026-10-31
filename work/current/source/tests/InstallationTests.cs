@@ -12,6 +12,18 @@ namespace OrbitRing {
             Check(DesktopLaunch.IsRedirected(file.ToUpperInvariant(),redirected.ToLowerInvariant(),data),"virtualized settings detection follows Windows path casing rules",r);
             Check(!DesktopLaunch.IsRedirected(file,@"\\?\"+file,data) && !DesktopLaunch.IsRedirected(file,@"D:\Profiles\User\Orbitals\settings.json",data),"ordinary desktop paths and redirected user-profile drives do not cause a relaunch",r);
             Check(!DesktopLaunch.IsRedirected(file,data+@"\Packages\Example.App_123\LocalCache\Local\Other\settings.json",data) && !DesktopLaunch.IsRedirected(redirected.Substring(4),redirected,data),"only a matching implicit package redirect triggers normal desktop startup",r);
+            string command=StartupRegistration.Command(@"C:\Program Files\Orbitals\orbitals.exe");
+            Check(StartupRegistration.Evaluate(true,command,command,null)==StartupState.Registered,"a matching background startup entry works without a Windows override",r);
+            Check(StartupRegistration.Evaluate(true,command.ToUpperInvariant(),command,null)==StartupState.Registered,"startup status recognizes Windows path casing",r);
+            byte[] approval=new byte[12]; approval[0]=3; approval[4]=91;
+            Check(StartupRegistration.Evaluate(true,command,command,approval)==StartupState.DisabledByWindows,"Windows startup disablement is reported despite the app preference being enabled",r);
+            approval[0]=2;
+            Check(StartupRegistration.Evaluate(true,command,command,approval)==StartupState.Registered,"Windows startup approval is recognized independently of timestamp bytes",r);
+            approval[0]=99;
+            Check(StartupRegistration.Evaluate(true,command,command,approval)==StartupState.Unknown && StartupRegistration.Evaluate(true,command,command,new byte[]{2})==StartupState.Unknown && StartupRegistration.Evaluate(true,command,command,"2")==StartupState.Unknown,"unrecognized or malformed Windows approval data is never reported as enabled",r);
+            Check(StartupRegistration.Evaluate(true,null,command,null)==StartupState.Missing && StartupRegistration.Evaluate(true,command.Replace("Program Files","Old"),command,null)==StartupState.DifferentLocation,"missing and outdated startup registrations are distinguished",r);
+            Check(StartupRegistration.Evaluate(false,null,command,null)==StartupState.Off && StartupRegistration.Evaluate(false,command,command,null)==StartupState.LeftRegistered,"a disabled preference does not hide a stale Windows startup entry",r);
+            Check(StartupRegistration.Evaluate(true,command.Replace(" --background",""),command,null)==StartupState.DifferentLocation,"a startup entry that opens the editor instead of staying resident needs repair",r);
             try {
                 string source=Path.Combine(root,"portable"),local=Path.Combine(root,"local"),destination=AppPaths.DirectoryFor(source,local,true); Directory.CreateDirectory(source);
                 Check(AppPaths.DirectoryFor(source,local,false)==source && destination==Path.Combine(local,"Orbitals"),"installed data is separated from program files while portable data stays beside the executable",r);

@@ -33,7 +33,7 @@ namespace OrbitRing {
             if(Context.SequenceEqual(ExpandedPath) && selected>=0 && selected<items.Count && items[selected].Kind=="none") empty=selected;
             else for(int i=0;i<items.Count;i++) if(items[i].Kind=="none") { empty=i; break; }
             if(empty<0) { if(items.Count>=PlanetStack.MaxArcItems) return; empty=items.Count; }
-            if(!layer.Arc) { if(empty>=items.Count) return; Targets.Add(new EditorTarget { Slot=empty,Depth=layer.Depth,Path=ExpandedPath.ToArray(),Item=items[empty],Position=PlanetMenu.Polar(210,Math.PI/2),Angle=Math.PI/2,Size=layer.Size,Radius=210 }); return; }
+            if(!layer.Arc) { if(layer.Targets.Count>0 || empty>=items.Count) return; Targets.Add(new EditorTarget { Slot=empty,Depth=layer.Depth,Path=ExpandedPath.ToArray(),Item=items[empty],Position=PlanetMenu.Polar(131,-Math.PI/2),Angle=-Math.PI/2,Size=layer.Size,Radius=131 }); return; }
             if(layer.Targets.Count==8) { double radius=layer.Radius+layer.Size+20+layer.Gap; layer=new PlanetLayer { Depth=layer.Depth,Arc=true,Radius=radius,Angle=layer.Angle,Spacing=PlanetMenu.ArcSpacing(radius,layer.Size),Size=layer.Size,Gap=layer.Gap,Title=layer.Title }; Menu.Layers.Add(layer); }
             double angle=layer.Targets.Count==0?layer.Angle:layer.Targets.Last().Angle+layer.Spacing;
             Targets.Add(new EditorTarget { Slot=empty,Depth=layer.Depth,Path=ExpandedPath.ToArray(),Item=empty<items.Count?items[empty]:PlanetStack.Empty(),Position=PlanetMenu.Polar(layer.Radius,angle),Angle=angle,Size=layer.Size,Radius=layer.Radius });

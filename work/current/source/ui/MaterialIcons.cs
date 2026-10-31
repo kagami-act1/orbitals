@@ -89,18 +89,16 @@ namespace OrbitRing {
             return null;
         }
         public static void ReleaseCatalog(Preferences config) {
-            CustomIcons.ClearCache();
             HashSet<string> keep=new HashSet<string>(StringComparer.Ordinal);
-            keep.Add("ms:volume_off"); keep.Add("ms:volume_up");
-            foreach(ActionItem item in PlanetStack.Walk(config.Items)) {
+            foreach(ActionItem item in config.AllActions()) {
                 keep.Add(ActionIcons.EffectiveKey(item));
                 if(AudioMute.Supports(item)) { keep.Add(ActionIcons.EffectiveKey(AudioMute.StateAction(item,true))); keep.Add(ActionIcons.EffectiveKey(AudioMute.StateAction(item,false))); }
                 if(item.Toggle!=null && item.Toggle.Stages!=null) foreach(ToggleStage stage in item.Toggle.Stages) if(stage!=null) keep.Add(ActionIcons.EffectiveKey(stage.Action()));
             }
-            // Warm the tiny retained set once, then release all search metadata/unused vectors.
-            foreach(string key in keep) Find(key);
-            foreach(ConversionChoice choice in config.Conversion.Images.Concat(config.Conversion.Pdf).Concat(config.Conversion.Files).Concat(config.Conversion.Archives)) if(choice.Enabled) { string key=ActionIcons.EffectiveKey(choice.Action()); if(byKey.ContainsKey(key)) keep.Add(key); }
+            foreach(DropKind source in ConversionCatalog.Sources) foreach(ConversionChoice choice in config.Conversion.List(source)) if(choice.Enabled) keep.Add(ActionIcons.EffectiveKey(choice.Action()));
+            // Keep only configured resources that were actually used; cleanup must not load icons.
             foreach(string key in new List<string>(byKey.Keys)) if(!keep.Contains(key)) byKey.Remove(key);
+            CustomIcons.Retain(keep);
             all=null; categories=null;
         }
         public static List<MaterialIcon> Search(string query,string category) {

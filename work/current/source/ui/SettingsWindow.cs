@@ -233,6 +233,13 @@ namespace OrbitRing {
             surface=new LayoutEditor();
             surface.SelectionChanged=delegate(int[] path,int index) { SetEditorContext(path); if(index==CurrentPlanetItems.Count && EditingArc() && index<PlanetStack.MaxArcItems) { Remember(); CurrentPlanetItems.Add(PlanetStack.Empty()); Changed("新しいアクションの枠を追加しました。"); } selected=index; iconStage=-1; RefreshAll(); ShowSide(1); };
             surface.Moved=MoveAction;
+            surface.Inserted=delegate(int[] path,int before,ActionItem item,int from) {
+                IList<ActionItem> items=PlanetEditorLayout.Resolve(EditorRootItems(),path); int index;
+                List<ActionItem> insertedItems=EditorInsertion.Prepare(items,before,from<0?UserContent.CopyAction(item):items[from],from,path.Length,out index);
+                if(insertedItems==null) return;
+                Remember(); for(int i=0;i<items.Count;i++) items[i]=insertedItems[i];
+                SetEditorContext(path); selected=index; RefreshAll(); ShowSide(1); Changed("項目の間に配置しました。「保存」で反映します。");
+            };
             surface.Assigned=delegate(int[] path,int index,ActionItem item) { SetEditorContext(path); Assign(index,item); };
             surface.Entered=delegate(int[] path,int index) { SetEditorContext(path); EnterEditorStack(index); };
             surface.Erased=Erase;
@@ -422,7 +429,7 @@ namespace OrbitRing {
         void ResizeCheckpoint() { if(!sliderGesture || !sliderHistory) { Remember(); sliderHistory=true; } }
         bool Save() {
             EndKeyCapture();
-            try { owner.Apply(draft.Clone()); ClearWorkingCopy(); Changed("保存しました。次の呼び出しから反映されます。"); return true; }
+            try { owner.Apply(draft.Clone()); ClearWorkingCopy(); RefreshStartupStatus(); Changed("保存しました。次の呼び出しから反映されます。"); return true; }
             catch(Exception ex) { status.Foreground=EditorUi.Brush("#FFB2A2"); status.Text=ex.Message; return false; }
         }
         public void Export(string path) { RingWindow.ExportElement((FrameworkElement)Content,path,1268,780); }

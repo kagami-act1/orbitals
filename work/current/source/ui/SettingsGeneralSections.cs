@@ -5,9 +5,12 @@ using System.Windows.Controls;
 namespace OrbitRing {
     sealed partial class SettingsWindow {
         int settingsCategory;
+        TextBlock startupStatus;
+        Button startupSystemSettings;
+        bool startupStatusSubscribed;
         void SelectSettingsCategory(int category) { if(category<0 || category>2 || category==settingsCategory) return; settingsCategory=category; EndKeyCapture(); BuildGeneralSettings(); }
         void BuildGeneralSettings() {
-            EndKeyCapture(); settingsPanel.Children.Clear(); appearanceTrail=null; stackSpacingPreview=null; hotkey=null; startup=null; ringSize=null; buttonSize=null; ringSizeLabel=null; buttonSizeLabel=null;
+            EndKeyCapture(); settingsPanel.Children.Clear(); appearanceTrail=null; stackSpacingPreview=null; hotkey=null; startup=null; startupStatus=null; startupSystemSettings=null; ringSize=null; buttonSize=null; ringSizeLabel=null; buttonSizeLabel=null;
             Grid layout=new Grid(); layout.ColumnDefinitions.Add(new ColumnDefinition { Width=new GridLength(160) }); layout.ColumnDefinitions.Add(new ColumnDefinition { Width=new GridLength(24) }); layout.ColumnDefinitions.Add(new ColumnDefinition()); settingsPanel.Children.Add(layout);
             StackPanel categories=new StackPanel(); layout.Children.Add(categories); string[] names={"操作","外観","起動・管理"};
             for(int i=0;i<names.Length;i++) { int index=i; Button button=EditorUi.Button(names[i],delegate { SelectSettingsCategory(index); },false); button.Margin=new Thickness(0,0,0,10); button.HorizontalContentAlignment=HorizontalAlignment.Left; if(index==settingsCategory) { button.Background=EditorUi.Brush("#355747"); button.BorderBrush=EditorUi.Mint; } System.Windows.Automation.AutomationProperties.SetName(button,"設定の分類："+names[i]); categories.Children.Add(button); }
@@ -64,8 +67,23 @@ namespace OrbitRing {
         void BuildManagementSettings(StackPanel left,StackPanel right) {
             StackPanel launch=new StackPanel(); launch.Children.Add(EditorUi.Text("起動",19,EditorUi.Ink)); startup=new CheckBox { Content="Windowsにログインしたら自動起動",Foreground=EditorUi.Ink,IsChecked=draft.StartWithWindows,Margin=new Thickness(0,16,0,12) }; launch.Children.Add(startup);
             startup.Click+=delegate { if(updatingWorkspace) return; Remember(); draft.StartWithWindows=startup.IsChecked==true; Changed("自動起動の設定を変更しました。「保存」で反映します。"); }; launch.Children.Add(EditorUi.Text(AppPaths.IsInstalled?"Windowsへのログイン時に、編集画面を出さずに常駐します。":"編集画面を出さずに常駐します。自動起動を使う場合はアプリのフォルダーを移動しないでください。",12,EditorUi.Muted)); left.Children.Add(Card(launch)); left.Children.Add(BuildConversionSettings()); left.Children.Add(BuildPluginSettings());
+            startupStatus=EditorUi.Text("",12,EditorUi.Muted); startupStatus.Margin=new Thickness(0,10,0,0); launch.Children.Add(startupStatus);
+            startupSystemSettings=EditorUi.Button("Windowsのスタートアップ設定",delegate {
+                try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ms-settings:startupapps") { UseShellExecute=true }); }
+                catch(Exception ex) { Changed("Windowsの設定を開けませんでした。"+ex.Message); }
+            },false); startupSystemSettings.Margin=new Thickness(0,10,0,0); launch.Children.Add(startupSystemSettings);
+            if(!startupStatusSubscribed) { Activated+=delegate { RefreshStartupStatus(); }; startupStatusSubscribed=true; }
+            RefreshStartupStatus();
             StackPanel backup=new StackPanel(); backup.Children.Add(EditorUi.Text("バックアップ・復元",19,EditorUi.Ink)); TextBlock help=EditorUi.Text("リング・ジェスチャー・アクション・外観を、JSON（.json）でまとめて保存します。",13,EditorUi.Muted); help.Margin=new Thickness(0,14,0,16); backup.Children.Add(help);
             Button export=EditorUi.Button("バックアップを保存",delegate { ExportBackup(); },false); export.Margin=new Thickness(0,0,0,10); backup.Children.Add(export); Button import=EditorUi.Button("バックアップから復元",delegate { ImportBackup(); },false); import.Margin=new Thickness(0,0,0,14); backup.Children.Add(import); backup.Children.Add(EditorUi.Text("読み込んだ内容を確認してから「保存」で反映します。変更前の内容には「元に戻す」で戻せます。",12,EditorUi.Muted)); right.Children.Add(Card(backup));
+        }
+        void RefreshStartupStatus() {
+            if(startupStatus==null || startupSystemSettings==null) return;
+            if(owner.Diagnostic) { startupStatus.Visibility=Visibility.Collapsed; startupSystemSettings.Visibility=Visibility.Collapsed; return; }
+            StartupState state;
+            try { state=StartupRegistration.Status(owner.Config.StartWithWindows); } catch { state=StartupState.Unknown; }
+            startupStatus.Text=StartupRegistration.Description(state);
+            startupSystemSettings.Visibility=state==StartupState.DisabledByWindows || state==StartupState.Unknown?Visibility.Visible:Visibility.Collapsed;
         }
     }
 }
