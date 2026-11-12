@@ -20,3 +20,14 @@ self-test*.txt
 bin/
 obj/
 node_modules/
+
+# Local migration layout
+/work/
+/release/packages/*
+!/release/packages/current/
+/release/packages/current/*
+!/release/packages/current/orbitals.exe.config
+!/release/packages/current/update-channel.json
+!/release/packages/current/conversion/
+/release/packages/current/conversion/image-codec.exe
+*.draft.json
